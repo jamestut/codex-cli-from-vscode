@@ -101,11 +101,8 @@ def resolve_binary_relative_path() -> Path:
 
     binary_map = {
         ("linux", "x86_64"): Path("bin/linux-x86_64/codex"),
-        ("linux", "amd64"): Path("bin/linux-x86_64/codex"),
-        ("linux", "aarch64"): Path("bin/linux-arm64/codex"),
-        ("linux", "arm64"): Path("bin/linux-arm64/codex"),
-        ("darwin", "x86_64"): Path("bin/darwin-x86_64/codex"),
-        ("darwin", "arm64"): Path("bin/darwin-arm64/codex"),
+        ("linux", "aarch64"): Path("bin/linux-aarch64/codex"),
+        ("darwin", "arm64"): Path("bin/macos-aarch64/codex"),
     }
 
     try:
