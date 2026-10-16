@@ -20,7 +20,7 @@ def load_json_file(path: Path) -> object:
         raise LauncherError(f"Invalid JSON in {path}: {exc}") from exc
 
 
-def load_config(project_dir: Path) -> Path:
+def load_config(project_dir: Path) -> tuple[Path, str]:
     config_path = project_dir / "config.json"
     data = load_json_file(config_path)
     if not isinstance(data, dict):
@@ -30,12 +30,21 @@ def load_config(project_dir: Path) -> Path:
     if not isinstance(extensions_dir, str) or not extensions_dir:
         raise LauncherError("config.json must define a non-empty string field: extensions_dir")
 
+    executable_name = data.get("executable_name", "codex")
+    if (
+        not isinstance(executable_name, str)
+        or not executable_name
+    ):
+        raise LauncherError(
+            "config.json field executable_name must be a non-empty filename"
+        )
+
     resolved = Path(extensions_dir)
     if not resolved.is_absolute():
         raise LauncherError("extensions_dir must be an absolute path")
     if not resolved.is_dir():
         raise LauncherError(f"Configured extensions_dir does not exist: {resolved}")
-    return resolved
+    return resolved, executable_name
 
 
 def load_extensions_index(extensions_dir: Path) -> list[object]:
@@ -95,14 +104,14 @@ def resolve_registered_extension_dir(extensions_dir: Path) -> Path:
     )
 
 
-def resolve_binary_relative_path() -> Path:
+def resolve_binary_relative_path(executable_name: str) -> Path:
     system = platform.system().lower()
     machine = platform.machine().lower()
 
     binary_map = {
-        ("linux", "x86_64"): Path("bin/linux-x86_64/codex"),
-        ("linux", "aarch64"): Path("bin/linux-aarch64/codex"),
-        ("darwin", "arm64"): Path("bin/macos-aarch64/codex"),
+        ("linux", "x86_64"): Path("bin/linux-x86_64") / executable_name,
+        ("linux", "aarch64"): Path("bin/linux-aarch64") / executable_name,
+        ("darwin", "arm64"): Path("bin/macos-aarch64") / executable_name,
     }
 
     try:
@@ -113,10 +122,12 @@ def resolve_binary_relative_path() -> Path:
         ) from exc
 
 
-def resolve_fallback_binary_relative_path(extension_dir: Path) -> Path:
+def resolve_fallback_binary_relative_path(
+    extension_dir: Path, executable_name: str
+) -> Path:
     bin_dir = extension_dir / "bin"
     if not bin_dir.is_dir():
-        raise LauncherError(f"Codex bin directory not found: {bin_dir}")
+        raise LauncherError(f"Executable bin directory not found: {bin_dir}")
 
     candidates = sorted(
         child for child in bin_dir.iterdir() if child.is_dir() and not child.name.startswith(".")
@@ -124,28 +135,30 @@ def resolve_fallback_binary_relative_path(extension_dir: Path) -> Path:
     if not candidates:
         raise LauncherError(f"No non-hidden platform directories found in: {bin_dir}")
 
-    return Path("bin") / candidates[0].name / "codex"
+    return Path("bin") / candidates[0].name / executable_name
 
 
-def resolve_binary_path(extension_dir: Path) -> Path:
+def resolve_binary_path(extension_dir: Path, executable_name: str) -> Path:
     try:
-        binary_relative_path = resolve_binary_relative_path()
+        binary_relative_path = resolve_binary_relative_path(executable_name)
     except LauncherError:
-        binary_relative_path = resolve_fallback_binary_relative_path(extension_dir)
+        binary_relative_path = resolve_fallback_binary_relative_path(
+            extension_dir, executable_name
+        )
 
     binary_path = extension_dir / binary_relative_path
     if not binary_path.is_file():
-        raise LauncherError(f"Codex binary not found at expected path: {binary_path}")
+        raise LauncherError(f"Configured executable not found at expected path: {binary_path}")
     if not os.access(binary_path, os.X_OK):
-        raise LauncherError(f"Codex binary is not executable: {binary_path}")
+        raise LauncherError(f"Configured executable is not executable: {binary_path}")
     return binary_path
 
 
 def main() -> int:
     project_dir = Path(__file__).resolve().parent
-    extensions_dir = load_config(project_dir)
+    extensions_dir, executable_name = load_config(project_dir)
     extension_dir = resolve_registered_extension_dir(extensions_dir)
-    binary_path = resolve_binary_path(extension_dir)
+    binary_path = resolve_binary_path(extension_dir, executable_name)
     os.execv(str(binary_path), [str(binary_path), *sys.argv[1:]])
     return 0
 

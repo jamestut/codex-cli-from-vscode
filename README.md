@@ -10,7 +10,7 @@ This project provides a small Python launcher named `codex-launcher.py` that for
 4. Parse `extensions.json` inside that directory.
 5. Find the `openai.chatgpt` entry that VS Code has registered.
 6. Use `location.path` when present, or fall back to `relativeLocation`.
-7. Resolve the platform-specific bundled `codex` binary inside that exact extension directory.
+7. Resolve the configured executable inside that exact extension directory, using `codex` when `executable_name` is omitted.
 8. `exec` the real binary and forward all CLI arguments unchanged.
 
 ## Configuration
@@ -19,11 +19,12 @@ This project provides a small Python launcher named `codex-launcher.py` that for
 
 ```json
 {
-  "extensions_dir": "/home/jamesn/vscode/server-data/extensions"
+  "extensions_dir": "/home/jamesn/vscode/server-data/extensions",
+  "executable_name": "codex"
 }
 ```
 
-`config.example.json` is tracked as a template, and this repo also includes a local `config.json` for the requested base directory.
+`executable_name` is optional and must be a filename, not a path. Set it to the bundled executable's filename to override the default `codex`. `config.example.json` is tracked as a template, and this repo also includes a local `config.json` for the requested base directory.
 
 ## Symlink setup
 

@@ -1,3 +1,4 @@
 {
-  "extensions_dir": "/home/user/.code-server-oss/extensions"
+  "extensions_dir": "/home/user/.code-server-oss/extensions",
+  "executable_name": "codex"
 }
